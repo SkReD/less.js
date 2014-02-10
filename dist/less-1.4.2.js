@@ -1629,7 +1629,18 @@ if (less.mode === 'browser' || less.mode === 'rhino') {
 (function (tree) {
 
 tree.functions = {
-    rgb: function (r, g, b) {
+	'const': function(name, value){
+		this._storedConsts = this._storedConsts || {};
+		if (value == undefined)
+		{
+			return this._storedConsts[name];
+		}
+		else
+		{
+			return this._storedConsts[name] = value;
+		}
+	},
+	rgb: function (r, g, b) {
         return this.rgba(r, g, b, 1.0);
     },
     rgba: function (r, g, b, a) {
