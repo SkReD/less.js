@@ -755,7 +755,7 @@ less.Parser = function Parser(env) {
 
                 while (current)
                 {
-                    node = this.extendRule() || mixin.definition() || this.rule() || this.ruleset() ||
+                    node = this.extendRule() || mixin.definition() || this.rule() || this.entities.call() || this.ruleset() ||
                         mixin.call() || this.comment() || this.directive();
                     if (node) {
                         root.push(node);
@@ -2010,7 +2010,34 @@ less.Parser.serializeVars = function(vars) {
 (function (tree) {
 
 tree.functions = {
-    rgb: function (r, g, b) {
+    'const': function(nameDescr, valueDescr){
+	    var value;
+
+	    tree._storedConsts = tree._storedConsts || {};
+	    if (valueDescr == undefined)
+	    {
+		    value = tree._storedConsts[nameDescr.value];
+		    if (value == undefined)
+		    {
+			    throw new Error(nameDescr.value.green + 'is not defined for '.red + 'const()'.green + ' call'.red)
+		    }
+		    else if (isNaN(value))
+		    {
+			    return new (tree.Quoted)(value);
+		    }
+		    else
+		    {
+			    return new (tree.Dimension)(value);
+		    }
+	    }
+	    else
+	    {
+		    tree._storedConsts[nameDescr.value] = valueDescr.value;
+
+		    return new(tree.Value)('');
+	    }
+    },
+	rgb: function (r, g, b) {
         return this.rgba(r, g, b, 1.0);
     },
     rgba: function (r, g, b, a) {
@@ -3219,10 +3246,11 @@ tree.Color.prototype = {
             if (compress) {
                 var splitcolor = color.split('');
 
+                //SkReD: dont do this. It is broke the filter rendering in ie9 in certain circumstances.
                 // Convert color to short format
-                if (splitcolor[1] === splitcolor[2] && splitcolor[3] === splitcolor[4] && splitcolor[5] === splitcolor[6]) {
-                    color = '#' + splitcolor[1] + splitcolor[3] + splitcolor[5];
-                }
+//                if (splitcolor[1] === splitcolor[2] && splitcolor[3] === splitcolor[4] && splitcolor[5] === splitcolor[6]) {
+//                    color = '#' + splitcolor[1] + splitcolor[3] + splitcolor[5];
+//                }
             }
 
             return color;
@@ -4983,19 +5011,27 @@ tree.Ruleset.prototype = {
         }
         envSelectors.unshift(this.selectors);
 
-        // Evaluate imports
-        if (ruleset.root || ruleset.allowImports || !ruleset.strictImports) {
-            ruleset.evalImports(env);
-        }
+		// Evaluate "const" calls before imports, so constant values be stored before they are used.
+	    var rsRules = ruleset.rules, rsRuleCnt = rsRules ? rsRules.length : 0;
+	    for (i = 0; i < rsRuleCnt; i++) {
+		    if (rsRules[i].name == 'const') {
+			    rsRules[i].eval(env);
+		    }
+	    }
 
-        // Store the frames around mixin definitions,
-        // so they can be evaluated like closures when the time comes.
-        var rsRules = ruleset.rules, rsRuleCnt = rsRules ? rsRules.length : 0;
-        for (i = 0; i < rsRuleCnt; i++) {
-            if (rsRules[i] instanceof tree.mixin.Definition) {
-                rsRules[i].frames = envFrames.slice(0);
-            }
-        }
+	    // Evaluate imports
+	    if (ruleset.root || ruleset.allowImports || !ruleset.strictImports) {
+		    ruleset.evalImports(env);
+	    }
+
+	    // Store the frames around mixin definitions,
+	    // so they can be evaluated like closures when the time comes.
+	    rsRules = ruleset.rules, rsRuleCnt = rsRules ? rsRules.length : 0;
+	    for (i = 0; i < rsRuleCnt; i++) {
+		    if (rsRules[i] instanceof tree.mixin.Definition) {
+			    rsRules[i].frames = envFrames.slice(0);
+		    }
+	    }
 
         var mediaBlockCount = (env.mediaBlocks && env.mediaBlocks.length) || 0;
 
