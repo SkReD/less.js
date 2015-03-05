@@ -2,7 +2,7 @@
  * LESS - Leaner CSS v1.6.2 
  * http://lesscss.org 
  * 
- * Copyright (c) 2009-2014, Alexis Sellier <self@cloudhead.net> 
+ * Copyright (c) 2009-2015, Alexis Sellier <self@cloudhead.net> 
  * Licensed under the Apache v2 License. 
  * 
  */ 
@@ -2019,7 +2019,11 @@ tree.functions = {
 		    value = tree._storedConsts[nameDescr.value];
 		    if (value == undefined)
 		    {
-			    throw new Error(nameDescr.value.green + 'is not defined for '.red + 'const()'.green + ' call'.red)
+			    throw new Error(nameDescr.value.green + ' is not defined'.red);
+		    }
+		    else if (value[0] == '#')
+		    {
+			    return new (tree.Color)(value);
 		    }
 		    else if (isNaN(value))
 		    {
@@ -2027,7 +2031,7 @@ tree.functions = {
 		    }
 		    else
 		    {
-			    return new (tree.Dimension)(value);
+			    return new (tree.Dimension)(value, 'px');
 		    }
 	    }
 	    else
