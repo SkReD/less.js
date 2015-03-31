@@ -2023,7 +2023,7 @@ tree.functions = {
 		    }
 		    else if (value[0] == '#')
 		    {
-			    return new (tree.Color)(value);
+			    return new (tree.Color)(value.slice(1));
 		    }
 		    else if (isNaN(value))
 		    {
